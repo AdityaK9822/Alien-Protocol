@@ -1,5 +1,11 @@
-use soroban_sdk::contracttype;
+use soroban_sdk::{contracttype, Address};
 
-// Datakey's
-
-pub enum Datakey {}
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub enum DataKey {
+    Admin,
+    Paused,
+    SupportedAsset(Address),
+    Position(Address, Address), // (user, asset)
+    PositionIndex,
+}

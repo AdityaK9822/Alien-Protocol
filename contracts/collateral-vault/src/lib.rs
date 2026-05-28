@@ -8,20 +8,73 @@ pub struct VaultContract;
 
 #[contractimpl]
 impl VaultContract {
-    pub fn initialize(_env: Env, _admin: Address, _oracle: Address) {}
+    pub fn initialize(env: Env, admin: Address, _oracle: Address) {
+        admin.require_auth();
+        if storage::get_admin(&env).is_some() {
+            panic!("already initialized");
+        }
+        storage::set_admin(&env, &admin);
+        storage::set_paused(&env, false);
+    }
 
-    pub fn deposite_collateral(
-        env: Env,
-        sender: Address,
-        asset: Address,
-        amount: i128,
-    ) -> Result<(), VaultError> {
-        sender.require_auth();
+    pub fn set_paused(env: Env, paused: bool) {
+        let admin = storage::get_admin(&env).expect("not initialized");
+        admin.require_auth();
+        storage::set_paused(&env, paused);
+    }
+
+    pub fn add_supported_asset(env: Env, asset: Address) {
+        let admin = storage::get_admin(&env).expect("not initialized");
+        admin.require_auth();
+        storage::add_supported_asset(&env, &asset);
+    }
+
+    pub fn is_supported_asset(env: Env, asset: Address) -> bool {
+        storage::is_supported_asset(&env, &asset)
+    }
+
+    pub fn get_admin(env: Env) -> Option<Address> {
+        storage::get_admin(&env)
+    }
+
+    pub fn get_position_balance(env: Env, user: Address, asset: Address) -> i128 {
+        storage::get_position_balance(&env, &user, &asset)
+    }
+
+    pub fn get_position_index(env: Env) -> soroban_sdk::Vec<Address> {
+        storage::get_position_index(&env)
+    }
+
+    pub fn deposit(env: Env, user: Address, asset: Address, amount: i128) {
+        user.require_auth();
+
+        if amount <= 0 {
+            soroban_sdk::panic_with_error!(&env, VaultError::InvalidInputs);
+        }
+
+        if storage::is_paused(&env) {
+            soroban_sdk::panic_with_error!(&env, VaultError::VaultPaused);
+        }
+
+        if !storage::is_supported_asset(&env, &asset) {
+            soroban_sdk::panic_with_error!(&env, VaultError::UnsupportedAsset);
+        }
 
         let token_client = token::Client::new(&env, &asset);
+        token_client.transfer(&user, env.current_contract_address(), &amount);
 
-        token_client.transfer(&sender, &env.current_contract_address(), &amount);
-        Ok(())
+        let balance = storage::get_position_balance(&env, &user, &asset);
+        let new_balance = balance + amount;
+        storage::set_position_balance(&env, &user, &asset, new_balance);
+
+        storage::add_to_position_index(&env, &user);
+
+        events::Deposited {
+            user,
+            asset,
+            amount,
+        }
+        .publish(&env);
     }
 
     pub fn withdraw(_env: Env, _reciver: Address, _asset: Address, _amount: i128) {}
