@@ -71,7 +71,7 @@ fn setup_env() -> (
 
 #[test]
 fn test_get_position_returns_correct_data() {
-    let (env, client, _admin, user, token_id, _token_client, token_admin, _, _) = setup_env();
+    let (_env, client, _admin, user, token_id, _token_client, token_admin, _, _) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.deposit(&user, &token_id, &500);
@@ -87,7 +87,7 @@ fn test_get_position_returns_correct_data() {
 
 #[test]
 fn test_get_position_no_position_panics() {
-    let (env, client, _admin, user, _token_id, _token_client, _token_admin, _, _) = setup_env();
+    let (_env, client, _admin, user, _token_id, _token_client, _token_admin, _, _) = setup_env();
 
     let res = client.try_get_position(&user);
     assert!(res.is_err(), "should panic for unknown user");
@@ -95,7 +95,7 @@ fn test_get_position_no_position_panics() {
 
 #[test]
 fn test_get_position_after_partial_withdraw() {
-    let (env, client, _admin, user, token_id, _token_client, token_admin, _, _) = setup_env();
+    let (_env, client, _admin, user, token_id, _token_client, token_admin, _, _) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.deposit(&user, &token_id, &500);
@@ -109,7 +109,7 @@ fn test_get_position_after_partial_withdraw() {
 
 #[test]
 fn test_get_collateral_value_correct_calculation() {
-    let (env, client, _admin, user, token_id, _token_client, token_admin, _, oracle) = setup_env();
+    let (_env, client, _admin, user, token_id, _token_client, token_admin, _, oracle) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.deposit(&user, &token_id, &500);
@@ -123,7 +123,7 @@ fn test_get_collateral_value_correct_calculation() {
 
 #[test]
 fn test_get_collateral_value_no_position_panics() {
-    let (env, client, _admin, user, _token_id, _token_client, _token_admin, _, _) = setup_env();
+    let (_env, client, _admin, user, _token_id, _token_client, _token_admin, _, _) = setup_env();
 
     let res = client.try_get_collateral_value(&user);
     assert!(res.is_err(), "should panic for user with no position");
@@ -148,7 +148,7 @@ fn test_get_collateral_value_stale_price_panics() {
 
 #[test]
 fn test_get_collateral_value_precision() {
-    let (env, client, _admin, user, token_id, _token_client, token_admin, _, oracle) = setup_env();
+    let (_env, client, _admin, user, token_id, _token_client, token_admin, _, oracle) = setup_env();
 
     // Large deposit amount
     let large_amount = 1_000_000_000_000_i128;
@@ -165,7 +165,7 @@ fn test_get_collateral_value_precision() {
 
 #[test]
 fn test_get_collateral_value_uses_latest_price() {
-    let (env, client, _admin, user, token_id, _token_client, token_admin, _, oracle) = setup_env();
+    let (_env, client, _admin, user, token_id, _token_client, token_admin, _, oracle) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.deposit(&user, &token_id, &500);

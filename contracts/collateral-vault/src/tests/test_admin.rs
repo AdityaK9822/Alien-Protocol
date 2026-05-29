@@ -46,7 +46,7 @@ fn setup_env() -> (
 
 #[test]
 fn test_set_admin_success() {
-    let (env, client, admin, _user, _token_id, _token_client, _token_admin) = setup_env();
+    let (env, client, _admin, _user, _token_id, _token_client, _token_admin) = setup_env();
 
     let new_admin = Address::generate(&env);
     client.set_admin(&new_admin);
@@ -64,13 +64,13 @@ fn test_set_admin_non_admin_fails() {
     // Assert that it was the admin address that was required to authorize the set_admin call
     let auths = env.auths();
     assert_eq!(auths.len(), 1);
-    let (auth_addr, _) = auths.get(0).unwrap();
+    let (auth_addr, _) = auths.first().unwrap();
     assert_eq!(*auth_addr, admin);
 }
 
 #[test]
 fn test_set_admin_emits_event() {
-    let (env, client, admin, _user, _token_id, _token_client, _token_admin) = setup_env();
+    let (env, client, _admin, _user, _token_id, _token_client, _token_admin) = setup_env();
 
     let new_admin = Address::generate(&env);
     client.set_admin(&new_admin);
@@ -96,21 +96,21 @@ fn test_old_admin_cannot_act_after_transfer() {
 
     let auths = env.auths();
     assert_eq!(auths.len(), 1);
-    let (auth_addr, _) = auths.get(0).unwrap();
+    let (auth_addr, _) = auths.first().unwrap();
     assert_eq!(*auth_addr, new_admin);
     assert_ne!(*auth_addr, admin);
 }
 
 #[test]
 fn test_pause_success() {
-    let (env, client, admin, _user, _token_id, _token_client, _token_admin) = setup_env();
+    let (_env, client, _admin, _user, _token_id, _token_client, _token_admin) = setup_env();
 
     client.pause();
 }
 
 #[test]
 fn test_pause_blocks_deposit() {
-    let (env, client, admin, user, token_id, _token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, token_id, _token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.pause();
@@ -121,7 +121,7 @@ fn test_pause_blocks_deposit() {
 
 #[test]
 fn test_pause_blocks_withdraw() {
-    let (env, client, admin, user, token_id, _token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, token_id, _token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.deposit(&user, &token_id, &500);
@@ -134,7 +134,7 @@ fn test_pause_blocks_withdraw() {
 
 #[test]
 fn test_double_pause_fails() {
-    let (env, client, admin, _user, _token_id, _token_client, _token_admin) = setup_env();
+    let (_env, client, _admin, _user, _token_id, _token_client, _token_admin) = setup_env();
 
     client.pause();
     let res = client.try_pause();
@@ -143,7 +143,7 @@ fn test_double_pause_fails() {
 
 #[test]
 fn test_unpause_success() {
-    let (env, client, admin, user, token_id, token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, token_id, token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.pause();
@@ -156,7 +156,7 @@ fn test_unpause_success() {
 
 #[test]
 fn test_unpause_when_not_paused_fails() {
-    let (env, client, admin, _user, _token_id, _token_client, _token_admin) = setup_env();
+    let (_env, client, _admin, _user, _token_id, _token_client, _token_admin) = setup_env();
 
     let res = client.try_unpause();
     assert!(res.is_err());
@@ -164,7 +164,7 @@ fn test_unpause_when_not_paused_fails() {
 
 #[test]
 fn test_unpause_emits_event() {
-    let (env, client, admin, _user, _token_id, _token_client, _token_admin) = setup_env();
+    let (env, client, _admin, _user, _token_id, _token_client, _token_admin) = setup_env();
 
     client.pause();
     client.unpause();
@@ -179,7 +179,7 @@ fn test_unpause_emits_event() {
 
 #[test]
 fn test_remove_supported_asset_success() {
-    let (env, client, admin, _user, token_id, _token_client, _token_admin) = setup_env();
+    let (_env, client, _admin, _user, token_id, _token_client, _token_admin) = setup_env();
 
     assert!(client.is_supported_asset(&token_id));
     client.remove_supported_asset(&token_id);
@@ -188,7 +188,7 @@ fn test_remove_supported_asset_success() {
 
 #[test]
 fn test_remove_supported_asset_non_existent_fails() {
-    let (env, client, admin, _user, _token_id, _token_client, _token_admin) = setup_env();
+    let (env, client, _admin, _user, _token_id, _token_client, _token_admin) = setup_env();
 
     let fake_asset = Address::generate(&env);
     let res = client.try_remove_supported_asset(&fake_asset);
@@ -197,7 +197,7 @@ fn test_remove_supported_asset_non_existent_fails() {
 
 #[test]
 fn test_remove_supported_asset_blocks_deposit() {
-    let (env, client, admin, user, token_id, _token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, token_id, _token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.remove_supported_asset(&token_id);
@@ -208,7 +208,7 @@ fn test_remove_supported_asset_blocks_deposit() {
 
 #[test]
 fn test_remove_supported_asset_keeps_existing_positions() {
-    let (env, client, admin, user, token_id, _token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, token_id, _token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.deposit(&user, &token_id, &500);
@@ -223,7 +223,7 @@ fn test_remove_supported_asset_keeps_existing_positions() {
 
 #[test]
 fn test_remove_supported_asset_emits_event() {
-    let (env, client, admin, _user, token_id, _token_client, _token_admin) = setup_env();
+    let (env, client, _admin, _user, token_id, _token_client, _token_admin) = setup_env();
 
     client.remove_supported_asset(&token_id);
 

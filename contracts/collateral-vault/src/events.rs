@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 use soroban_sdk::{contracttype, Address, Env};
 
 #[contracttype]

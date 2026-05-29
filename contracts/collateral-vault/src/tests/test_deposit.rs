@@ -2,7 +2,7 @@
 
 use super::super::*;
 use soroban_sdk::testutils::{Address as _, Events};
-use soroban_sdk::{token, Address, Env, IntoVal};
+use soroban_sdk::{token, Address, Env};
 
 fn setup_env() -> (
     Env,
@@ -48,7 +48,7 @@ fn setup_env() -> (
 
 #[test]
 fn test_deposit_success() {
-    let (env, client, _admin, user, _oracle, token_id, token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, _oracle, token_id, token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.deposit(&user, &token_id, &500);
@@ -60,7 +60,7 @@ fn test_deposit_success() {
 
 #[test]
 fn test_deposit_increases_existing_balance() {
-    let (env, client, _admin, user, _oracle, token_id, token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, _oracle, token_id, token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.deposit(&user, &token_id, &300);
@@ -73,7 +73,7 @@ fn test_deposit_increases_existing_balance() {
 
 #[test]
 fn test_deposit_zero_amount_fails() {
-    let (env, client, _admin, user, _oracle, token_id, _token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, _oracle, token_id, _token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     let res = client.try_deposit(&user, &token_id, &0);
@@ -82,7 +82,7 @@ fn test_deposit_zero_amount_fails() {
 
 #[test]
 fn test_deposit_negative_amount_fails() {
-    let (env, client, _admin, user, _oracle, token_id, _token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, _oracle, token_id, _token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     let res = client.try_deposit(&user, &token_id, &-100);
@@ -105,7 +105,7 @@ fn test_deposit_unsupported_asset_fails() {
 
 #[test]
 fn test_deposit_when_paused_fails() {
-    let (env, client, admin, user, _oracle, token_id, _token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, _oracle, token_id, _token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
     client.pause();
@@ -122,7 +122,7 @@ fn test_deposit_without_auth_fails() {
     let client = VaultContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
-    let user = Address::generate(&env);
+    let _user = Address::generate(&env);
     let oracle = Address::generate(&env);
 
     // This should fail because admin require_auth is not mocked.
@@ -154,7 +154,7 @@ fn test_deposit_emits_event() {
 
 #[test]
 fn test_deposit_token_transfer() {
-    let (env, client, _admin, user, _oracle, token_id, token_client, token_admin) = setup_env();
+    let (_env, client, _admin, user, _oracle, token_id, token_client, token_admin) = setup_env();
 
     token_admin.mint(&user, &1000);
 
