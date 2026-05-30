@@ -80,7 +80,10 @@ fn test_set_admin_emits_event() {
     use soroban_sdk::TryFromVal;
     let event_symbol =
         soroban_sdk::Symbol::try_from_val(&env, &last_event.1.get(0).unwrap()).unwrap();
-    assert_eq!(event_symbol, soroban_sdk::Symbol::new(&env, "admin_changed"));
+    assert_eq!(
+        event_symbol,
+        soroban_sdk::Symbol::new(&env, "admin_changed")
+    );
 }
 
 #[test]
@@ -232,5 +235,8 @@ fn test_remove_supported_asset_emits_event() {
     use soroban_sdk::TryFromVal;
     let event_symbol =
         soroban_sdk::Symbol::try_from_val(&env, &last_event.1.get(0).unwrap()).unwrap();
-    assert_eq!(event_symbol, soroban_sdk::Symbol::new(&env, "asset_removed"));
+    assert_eq!(
+        event_symbol,
+        soroban_sdk::Symbol::new(&env, "asset_removed")
+    );
 }
