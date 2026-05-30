@@ -38,3 +38,18 @@ pub struct Paused {
 pub struct Unpaused {
     pub paused: bool,
 }
+
+#[contractevent]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CollateralSeized {
+    pub user: Address,
+    pub asset: Address,
+    pub amount: i128,
+    pub liquidation_engine: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, PartialEq)]
+pub struct LiquidationEngineSet {
+    pub engine: Address,
+}

@@ -89,6 +89,15 @@ impl VaultContract {
         events::AssetRemoved { asset }.publish(&env);
     }
 
+    pub fn authorize_liquidation(env: Env, engine: Address) {
+        let admin = storage::get_admin(&env).expect("not initialized");
+        admin.require_auth();
+
+        storage::set_liquidation_engine(&env, &engine);
+
+        events::LiquidationEngineSet { engine }.publish(&env);
+    }
+
     pub fn is_supported_asset(env: Env, asset: Address) -> bool {
         storage::is_supported_asset(&env, &asset)
     }
@@ -177,7 +186,56 @@ impl VaultContract {
         storage::get_all_positions(&env)
     }
 
-    pub fn seize_collateral(_env: Env, _user: Address, _asset: Address, _amount: i128) {}
+    pub fn seize_collateral(
+        env: Env,
+        liquidation_engine: Address,
+        user: Address,
+        asset: Address,
+        amount: i128,
+    ) {
+        liquidation_engine.require_auth();
+
+        let registered_engine =
+            storage::get_liquidation_engine(&env).expect("liquidation engine not authorized");
+        if liquidation_engine != registered_engine {
+            soroban_sdk::panic_with_error!(&env, VaultError::Unauthorized);
+        }
+
+        if storage::is_paused(&env) {
+            soroban_sdk::panic_with_error!(&env, VaultError::VaultPaused);
+        }
+
+        // Verify user has an active position
+        let index = storage::get_position_index(&env);
+        if !index.contains(&user) {
+            soroban_sdk::panic_with_error!(&env, VaultError::NoPosition);
+        }
+
+        let balance = storage::get_position_balance(&env, &user, &asset);
+        if balance < amount {
+            soroban_sdk::panic_with_error!(&env, VaultError::InvalidInputs);
+        }
+
+        let new_balance = balance - amount;
+        storage::set_position_balance(&env, &user, &asset, new_balance);
+
+        // If the user has no remaining balance across any asset, remove from index
+        let position = storage::get_position(&env, &user);
+        if position.collateral.is_empty() {
+            storage::remove_from_position_index(&env, &user);
+        }
+
+        let token_client = token::Client::new(&env, &asset);
+        token_client.transfer(&env.current_contract_address(), &liquidation_engine, &amount);
+
+        events::CollateralSeized {
+            user,
+            asset,
+            amount,
+            liquidation_engine,
+        }
+        .publish(&env);
+    }
 
     pub fn is_withdrawal_safe(_env: Env, _user: Address, _amount: i128) {}
 

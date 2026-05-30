@@ -77,6 +77,16 @@ pub fn set_oracle(env: &Env, oracle: &Address) {
     env.storage().persistent().set(&DataKey::Oracle, oracle);
 }
 
+pub fn get_liquidation_engine(env: &Env) -> Option<Address> {
+    env.storage().persistent().get(&DataKey::LiquidationEngine)
+}
+
+pub fn set_liquidation_engine(env: &Env, engine: &Address) {
+    env.storage()
+        .persistent()
+        .set(&DataKey::LiquidationEngine, engine);
+}
+
 pub fn get_position_balance(env: &Env, user: &Address, asset: &Address) -> i128 {
     env.storage()
         .persistent()
