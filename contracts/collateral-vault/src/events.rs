@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 use soroban_sdk::{contractevent, Address};
 
 #[contractevent]
@@ -23,18 +22,11 @@ pub struct AssetRemoved {
 
 #[contractevent]
 #[derive(Clone, Debug, PartialEq)]
-=======
-use soroban_sdk::{contracttype, Address};
-
-#[contracttype]
-#[derive(Clone, Debug, PartialEq, Eq)]
->>>>>>> ad858a3 (Implement set_admin Function)
 pub struct AdminChanged {
     pub old_admin: Address,
     pub new_admin: Address,
 }
 
-<<<<<<< HEAD
 #[contractevent]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Paused {
@@ -45,11 +37,4 @@ pub struct Paused {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Unpaused {
     pub paused: bool,
-=======
-#[contracttype]
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct AddCollateralEvent {
-    pub from: Address,
-    pub amount: i128,
->>>>>>> ad858a3 (Implement set_admin Function)
 }
