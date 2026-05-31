@@ -9,6 +9,11 @@ pub trait Oracle {
     fn get_price(env: Env, asset: Address) -> Option<types::PriceData>;
 }
 
+#[soroban_sdk::contractclient(name = "LendingPoolClient")]
+pub trait LendingPool {
+    fn get_user_debt(env: Env, user: Address) -> i128;
+}
+
 #[contract]
 pub struct VaultContract;
 
@@ -95,6 +100,22 @@ impl VaultContract {
         events::AssetRemoved { asset }.publish(&env);
     }
 
+    pub fn authorize_liquidation(env: Env, engine: Address) {
+        let admin = storage::get_admin(&env).expect("not initialized");
+        admin.require_auth();
+
+        storage::set_liquidation_engine(&env, &engine);
+
+        events::LiquidationEngineSet { engine }.publish(&env);
+    }
+
+    pub fn set_pool(env: Env, pool: Address) {
+        let admin = storage::get_admin(&env).expect("not initialized");
+        admin.require_auth();
+
+        storage::set_pool(&env, &pool);
+    }
+
     pub fn is_supported_asset(env: Env, asset: Address) -> bool {
         storage::is_supported_asset(&env, &asset)
     }
@@ -166,6 +187,11 @@ impl VaultContract {
             soroban_sdk::panic_with_error!(&env, VaultError::InvalidInputs);
         }
 
+        // Safety check: collateral ratio
+        if !Self::is_withdrawal_safe(env.clone(), receiver.clone(), asset.clone(), amount) {
+            soroban_sdk::panic_with_error!(&env, VaultError::BelowMinCollateralRatio);
+        }
+
         let new_balance = balance - amount;
         storage::set_position_balance(&env, &receiver, &asset, new_balance);
 
@@ -177,15 +203,105 @@ impl VaultContract {
 
         let token_client = token::Client::new(&env, &asset);
         token_client.transfer(&env.current_contract_address(), &receiver, &amount);
+
+        events::Withdrawn {
+            receiver,
+            asset,
+            amount,
+        }
+        .publish(&env);
     }
 
     pub fn get_all_positions(env: Env) -> Vec<Position> {
         storage::get_all_positions(&env)
     }
 
-    pub fn seize_collateral(_env: Env, _user: Address, _asset: Address, _amount: i128) {}
+    pub fn seize_collateral(
+        env: Env,
+        liquidation_engine: Address,
+        user: Address,
+        asset: Address,
+        amount: i128,
+    ) {
+        liquidation_engine.require_auth();
 
-    pub fn is_withdrawal_safe(_env: Env, _user: Address, _amount: i128) {}
+        let registered_engine =
+            storage::get_liquidation_engine(&env).expect("liquidation engine not authorized");
+        if liquidation_engine != registered_engine {
+            soroban_sdk::panic_with_error!(&env, VaultError::Unauthorized);
+        }
+
+        if storage::is_paused(&env) {
+            soroban_sdk::panic_with_error!(&env, VaultError::VaultPaused);
+        }
+
+        // Verify user has an active position
+        let index = storage::get_position_index(&env);
+        if !index.contains(&user) {
+            soroban_sdk::panic_with_error!(&env, VaultError::NoPosition);
+        }
+
+        let balance = storage::get_position_balance(&env, &user, &asset);
+        if balance < amount {
+            soroban_sdk::panic_with_error!(&env, VaultError::InvalidInputs);
+        }
+
+        let new_balance = balance - amount;
+        storage::set_position_balance(&env, &user, &asset, new_balance);
+
+        // If the user has no remaining balance across any asset, remove from index
+        let position = storage::get_position(&env, &user);
+        if position.collateral.is_empty() {
+            storage::remove_from_position_index(&env, &user);
+        }
+
+        let token_client = token::Client::new(&env, &asset);
+        token_client.transfer(
+            &env.current_contract_address(),
+            &liquidation_engine,
+            &amount,
+        );
+
+        events::CollateralSeized {
+            user,
+            asset,
+            amount,
+            liquidation_engine,
+        }
+        .publish(&env);
+    }
+
+    pub fn is_withdrawal_safe(env: Env, user: Address, asset: Address, amount: i128) -> bool {
+        let debt = if let Some(pool_addr) = storage::get_pool(&env) {
+            let pool_client = LendingPoolClient::new(&env, &pool_addr);
+            pool_client.get_user_debt(&user)
+        } else {
+            0
+        };
+
+        if debt == 0 {
+            return true;
+        }
+
+        let total_value = Self::get_collateral_value(env.clone(), user.clone());
+
+        let oracle_address = storage::get_oracle(&env).expect("oracle not configured");
+        let oracle_client = OracleClient::new(&env, &oracle_address);
+        let price_data = oracle_client.get_price(&asset).expect("price not found");
+
+        let withdrawn_value = amount
+            .checked_mul(price_data.price)
+            .unwrap_or_else(|| panic!("overflow in withdrawn value calculation"));
+
+        if total_value < withdrawn_value {
+            return false;
+        }
+
+        let remaining_value = total_value - withdrawn_value;
+
+        // Minimum collateral ratio: 110% (1.1)
+        remaining_value >= (debt * 110) / 100
+    }
 
     pub fn get_position(env: Env, user: Address) -> Position {
         let index = storage::get_position_index(&env);
